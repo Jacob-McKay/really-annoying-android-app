@@ -18,17 +18,23 @@ package com.example.android.jobscheduler.service;
 
 import android.app.job.JobParameters;
 import android.app.job.JobService;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 
+import com.example.android.jobscheduler.MainActivity;
 import com.example.android.jobscheduler.R;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequest;
@@ -58,16 +64,57 @@ public class MyJobService extends JobService {
 
     JobParameters mParams;
 
+    private AudioServiceBinder audioServiceBinder = null;
+
+    // This service connection object is the bridge between activity and background service.
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            // Cast and assign background service's onBind method returned iBander object.
+            audioServiceBinder = (AudioServiceBinder) iBinder;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+
+        }
+    };
+
+
+    // Bind background service with caller activity. Then this activity can use
+    // background service's AudioServiceBinder instance to invoke related methods.
+    private void bindAudioService()
+    {
+        if(audioServiceBinder == null) {
+            Intent intent = new Intent(MyJobService.this, AudioService.class);
+
+            // Below code will invoke serviceConnection's onServiceConnected method.
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        }
+    }
+
+    // Unbound background audio service with caller activity.
+    private void unBoundAudioService()
+    {
+        if(audioServiceBinder != null) {
+            unbindService(serviceConnection);
+        }
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
+
+        bindAudioService();
+
         Log.i(TAG, "Service created");
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        // Unbound background audio service when activity is destroyed.
+        unBoundAudioService();
         Log.i(TAG, "Service destroyed");
     }
 
@@ -91,8 +138,9 @@ public class MyJobService extends JobService {
 
         long duration = params.getExtras().getLong(WORK_DURATION_KEY);
 
-        MediaPlayer gong = MediaPlayer.create(MyJobService.this, R.raw.gong);
-        gong.start();
+//        mAnnoyingSound = (MediaPlayer) params.getExtras().get("MediaPlayer");
+//        MediaPlayer gong = MediaPlayer.create(MyJobService.this, R.raw.gong);
+//        gong.start();
 
         // Uses a handler to delay the execution of jobFinished().
         Handler handler = new Handler();
@@ -137,13 +185,13 @@ public class MyJobService extends JobService {
             } else {
                 Log.i("api response: ", response);
                 if(response.contains("true")) {
+                    audioServiceBinder.startAudio();
                     sendMessage(MSG_IT_IS_MY_TURN, null);
                 } else {
                     sendMessage(MSG_IT_AINT_MY_TURN, null);
                 }
             }
-            // TODO: check this.exception
-            // TODO: do something with the feed
+
             jobFinished(mParams, false);
         }
     }

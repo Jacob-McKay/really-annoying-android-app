@@ -24,8 +24,12 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.PersistableBundle;
@@ -40,6 +44,8 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.android.jobscheduler.service.AudioService;
+import com.example.android.jobscheduler.service.AudioServiceBinder;
 import com.example.android.jobscheduler.service.MyJobService;
 
 import java.lang.ref.WeakReference;
@@ -84,10 +90,50 @@ public class MainActivity extends Activity {
     // Handler for incoming messages from the service.
     private IncomingMessageHandler mHandler;
 
+    private AudioServiceBinder audioServiceBinder = null;
+
+    // This service connection object is the bridge between activity and background service.
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            // Cast and assign background service's onBind method returned iBander object.
+            audioServiceBinder = (AudioServiceBinder) iBinder;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+
+        }
+    };
+
+    // Bind background service with caller activity. Then this activity can use
+    // background service's AudioServiceBinder instance to invoke related methods.
+    private void bindAudioService()
+    {
+        if(audioServiceBinder == null) {
+            Intent intent = new Intent(MainActivity.this, AudioService.class);
+
+            // Below code will invoke serviceConnection's onServiceConnected method.
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        }
+    }
+
+    // Unbound background audio service with caller activity.
+    private void unBoundAudioService()
+    {
+        if(audioServiceBinder != null) {
+            unbindService(serviceConnection);
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.sample_main);
+
+        // Bind background audio service when activity is created.
+        bindAudioService();
+//        mAnnoyingSound = MediaPlayer.create(MainActivity.this, R.raw.chanel_west_coast_awful_laugh);
 
         // Set up UI.
         mDelayEditText = (EditText) findViewById(R.id.delay_time);
@@ -122,10 +168,21 @@ public class MainActivity extends Activity {
         startService(startServiceIntent);
     }
 
+    @Override
+    protected void onDestroy() {
+        // Unbound background audio service when activity is destroyed.
+        unBoundAudioService();
+        super.onDestroy();
+    }
+
     /**
      * Executed when user clicks on SCHEDULE JOB.
      */
     public void scheduleJob(View v) {
+        // Set application context.
+        audioServiceBinder.setContext(getApplicationContext());
+        // Start audio in background service.
+//        audioServiceBinder.startAudio();
         for (int i = 1; i < 2; i++) { // just for debugging
 //        for (int i = 1; i < 101; i++) { // queue up jobs for the next 8 minutes
             this.scheduleJobInSeconds(i * 5);
@@ -202,12 +259,13 @@ public class MainActivity extends Activity {
         }
     }
 
+    // THIS CLASS WAS STATIC, CAN IT BE NON STATIC?
     /**
      * A {@link Handler} allows you to send messages associated with a thread. A {@link Messenger}
      * uses this handler to communicate from {@link MyJobService}. It's also used to make
      * the start and stop views blink for a short period of time.
      */
-    private static class IncomingMessageHandler extends Handler {
+    private class IncomingMessageHandler extends Handler {
 
         // Prevent possible leaks with a weak reference.
         private WeakReference<MainActivity> mActivity;
@@ -274,9 +332,10 @@ public class MainActivity extends Activity {
                     builder.setMessage("Click the right dismiss button")
                             .setTitle("Do you hear, it?   Isn't it great?");
 
+
                     builder.setPositiveButton("Left", new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
-
+//                            mAnnoyingSound.stop();
                         }
                     });
                     builder.setNegativeButton("Right", new DialogInterface.OnClickListener() {

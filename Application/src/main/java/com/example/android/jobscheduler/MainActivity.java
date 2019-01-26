@@ -27,6 +27,8 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -47,6 +49,13 @@ import android.widget.Toast;
 import com.example.android.jobscheduler.service.AudioService;
 import com.example.android.jobscheduler.service.AudioServiceBinder;
 import com.example.android.jobscheduler.service.MyJobService;
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpMethods;
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.javanet.NetHttpTransport;
+
+import org.apache.http.protocol.HTTP;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -169,6 +178,43 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (audioServiceBinder != null && audioServiceBinder.getCurrentAudioPosition() > 0) {
+            showDialog();
+        }
+    }
+
+    private void showDialog() {
+        // 1. Instantiate an <code><a href="/reference/android/app/AlertDialog.Builder.html">AlertDialog.Builder</a></code> with its constructor
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+
+// 2. Chain together various setter methods to set the dialog characteristics
+        builder.setMessage("Click the right dismiss button")
+                .setTitle("Do you hear, it?   Isn't it great?");
+
+
+        builder.setPositiveButton("Left", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                audioServiceBinder.stopAudio();
+                String deviceId = mDelayEditText.getText().toString();
+                new MyTurnIsOver().execute(deviceId);
+            }
+        });
+        builder.setNegativeButton("Right", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User cancelled the dialog
+                showDialog();
+            }
+        });
+
+// 3. Get the <code><a href="/reference/android/app/AlertDialog.html">AlertDialog</a></code> from <code><a href="/reference/android/app/AlertDialog.Builder.html#create()">create()</a></code>
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+
+    @Override
     protected void onDestroy() {
         // Unbound background audio service when activity is destroyed.
         unBoundAudioService();
@@ -183,8 +229,8 @@ public class MainActivity extends Activity {
         audioServiceBinder.setContext(getApplicationContext());
         // Start audio in background service.
 //        audioServiceBinder.startAudio();
-        for (int i = 1; i < 2; i++) { // just for debugging
-//        for (int i = 1; i < 101; i++) { // queue up jobs for the next 8 minutes
+//        for (int i = 1; i < 2; i++) { // just for debugging
+        for (int i = 1; i < 101; i++) { // queue up jobs for the next 8 minutes
             this.scheduleJobInSeconds(i * 5);
         }
     }
@@ -217,10 +263,11 @@ public class MainActivity extends Activity {
         // Extras, work duration.
         PersistableBundle extras = new PersistableBundle();
         String workDuration = mDurationTimeEditText.getText().toString();
-        if (TextUtils.isEmpty(workDuration)) {
-            workDuration = "1";
-        }
-        extras.putLong(WORK_DURATION_KEY, Long.valueOf(workDuration) * 1000);
+//        if (TextUtils.isEmpty(workDuration)) {
+//            workDuration = "1";
+//        }
+//        extras.putLong(WORK_DURATION_KEY, Long.valueOf(workDuration) * 1000);
+        extras.putString("deviceId", workDuration);
 
         builder.setExtras(extras);
 
@@ -256,6 +303,41 @@ public class MainActivity extends Activity {
             Toast.makeText(
                     MainActivity.this, getString(R.string.no_jobs_to_cancel),
                     Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    class MyTurnIsOver extends AsyncTask<String, Void, String> {
+
+        private Exception exception;
+
+        protected String doInBackground(String... params) {
+
+            try {
+                HttpRequestFactory requestFactory
+                        = new NetHttpTransport().createRequestFactory();
+                HttpRequest request = requestFactory.buildGetRequest(
+                        new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/reallycheckmyturn/" + params[0]));
+                request.setRequestMethod(HttpMethods.POST);
+                String rawResponse = request.execute().parseAsString();
+                return rawResponse;
+            } catch (Exception ex) {
+                Log.e("morebusted", "morewrecked", ex);
+                this.exception = ex;
+                return null;
+            }
+        }
+
+        protected void onPostExecute(String response) {
+            if (this.exception != null) {
+                Log.e("wtf", "idk", this.exception);
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                    MainActivity.this.finishAffinity();
+                } else{
+                    MainActivity.this.finish();
+                    System.exit( 0 );
+                }
+            }
         }
     }
 
@@ -325,28 +407,7 @@ public class MainActivity extends Activity {
                 case MSG_IT_AINT_MY_TURN:
                     break;
                 case MSG_IT_IS_MY_TURN:
-// 1. Instantiate an <code><a href="/reference/android/app/AlertDialog.Builder.html">AlertDialog.Builder</a></code> with its constructor
-                    AlertDialog.Builder builder = new AlertDialog.Builder(mActivity.get());
-
-// 2. Chain together various setter methods to set the dialog characteristics
-                    builder.setMessage("Click the right dismiss button")
-                            .setTitle("Do you hear, it?   Isn't it great?");
-
-
-                    builder.setPositiveButton("Left", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-//                            mAnnoyingSound.stop();
-                        }
-                    });
-                    builder.setNegativeButton("Right", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            // User cancelled the dialog
-                        }
-                    });
-
-// 3. Get the <code><a href="/reference/android/app/AlertDialog.html">AlertDialog</a></code> from <code><a href="/reference/android/app/AlertDialog.Builder.html#create()">create()</a></code>
-                    AlertDialog dialog = builder.create();
-                    dialog.show();
+                    showDialog();
                     break;
             }
         }

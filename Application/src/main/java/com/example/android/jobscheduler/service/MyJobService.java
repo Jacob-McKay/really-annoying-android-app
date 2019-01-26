@@ -136,7 +136,9 @@ public class MyJobService extends JobService {
 
         sendMessage(MSG_COLOR_START, params.getJobId());
 
-        long duration = params.getExtras().getLong(WORK_DURATION_KEY);
+//        long duration = params.getExtras().getLong(WORK_DURATION_KEY);
+        long duration = 5000;
+        final String deviceId = params.getExtras().getString("deviceId");
 
 //        mAnnoyingSound = (MediaPlayer) params.getExtras().get("MediaPlayer");
 //        MediaPlayer gong = MediaPlayer.create(MyJobService.this, R.raw.gong);
@@ -147,7 +149,7 @@ public class MyJobService extends JobService {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                new IsItMyTurn().execute();
+                new IsItMyTurn().execute(deviceId);
 
 //                sendMessage(MSG_COLOR_STOP, params.getJobId());
             }
@@ -169,7 +171,7 @@ public class MyJobService extends JobService {
                 HttpRequestFactory requestFactory
                         = new NetHttpTransport().createRequestFactory();
                 HttpRequest request = requestFactory.buildGetRequest(
-                        new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/checkmyturn/butts"));
+                        new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/reallycheckmyturn/" + params[0]));
                 String rawResponse = request.execute().parseAsString();
                 return rawResponse;
             } catch (Exception ex) {

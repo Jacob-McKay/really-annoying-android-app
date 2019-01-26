@@ -103,7 +103,6 @@ limitations under the License.
                     android:id="@+id/duration_time"
                     android:layout_width="48dp"
                     android:layout_height="wrap_content"
-                    android:inputType="number"
                     android:text="0" />
 
             </TableRow>

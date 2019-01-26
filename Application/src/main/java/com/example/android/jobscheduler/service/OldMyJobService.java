@@ -19,16 +19,12 @@ package com.example.android.jobscheduler.service;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.content.Intent;
-import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
-
-
-import com.example.android.jobscheduler.R;
 
 import static com.example.android.jobscheduler.MainActivity.MESSENGER_INTENT_KEY;
 import static com.example.android.jobscheduler.MainActivity.MSG_COLOR_START;
@@ -41,9 +37,9 @@ import static com.example.android.jobscheduler.MainActivity.WORK_DURATION_KEY;
  * ultimately land on this service's "onStartJob" method. It runs jobs for a specific amount of time
  * and finishes them. It keeps the activity updated with changes via a Messenger.
  */
-public class MyJobService extends JobService {
+public class OldMyJobService extends JobService {
 
-    private static final String TAG = MyJobService.class.getSimpleName();
+    private static final String TAG = OldMyJobService.class.getSimpleName();
 
     private Messenger mActivityMessenger;
 
@@ -77,9 +73,6 @@ public class MyJobService extends JobService {
         sendMessage(MSG_COLOR_START, params.getJobId());
 
         long duration = params.getExtras().getLong(WORK_DURATION_KEY);
-
-        MediaPlayer gong = MediaPlayer.create(MyJobService.this, R.raw.gong);
-        gong.start();
 
         // Uses a handler to delay the execution of jobFinished().
         Handler handler = new Handler();

@@ -29,6 +29,12 @@ import android.util.Log;
 
 
 import com.example.android.jobscheduler.R;
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.javanet.NetHttpTransport;
+
+import java.io.IOException;
 
 import static com.example.android.jobscheduler.MainActivity.MESSENGER_INTENT_KEY;
 import static com.example.android.jobscheduler.MainActivity.MSG_COLOR_START;
@@ -91,6 +97,20 @@ public class MyJobService extends JobService {
             }
         }, duration);
         Log.i(TAG, "on start job: " + params.getJobId());
+
+        try {
+            HttpRequestFactory requestFactory
+                    = new NetHttpTransport().createRequestFactory();
+            HttpRequest request = requestFactory.buildGetRequest(
+                    new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/checkmyturn/butts"));
+            String rawResponse = request.execute().parseAsString();
+            String huzzah = "butts";
+        } catch (IOException ex) {
+            Log.e("busted", "wrecked", ex);
+        } catch (Exception otherEx) {
+            Log.e("morebusted", "morewrecked", otherEx);
+        }
+
 
         // Return true as there's more work to be done with this job.
         return true;

@@ -18,10 +18,11 @@ repositories {
 }
 
 dependencies {
-    compile "com.android.support:support-v4:27.0.2"
-    compile "com.android.support:support-v13:27.0.2"
-    compile "com.android.support:cardview-v7:27.0.2"
-    compile "com.android.support:appcompat-v7:27.0.2"
+    compile 'com.android.support:support-v4:27.0.2'
+    compile 'com.android.support:support-v13:27.0.2'
+    compile 'com.android.support:cardview-v7:27.0.2'
+    compile 'com.android.support:appcompat-v7:27.0.2'
+    compile 'com.google.api-client:google-api-client-android:1.28.0'
 }
 
 // The sample build uses multiple directories to
@@ -59,4 +60,8 @@ android {
 
     }
 
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/proguard/androidx-annotations.pro'
+    }
 }

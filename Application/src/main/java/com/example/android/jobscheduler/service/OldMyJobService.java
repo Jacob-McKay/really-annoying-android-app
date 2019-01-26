@@ -26,6 +26,14 @@ import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.javanet.NetHttpTransport;
+
+import java.io.IOException;
+
 import static com.example.android.jobscheduler.MainActivity.MESSENGER_INTENT_KEY;
 import static com.example.android.jobscheduler.MainActivity.MSG_COLOR_START;
 import static com.example.android.jobscheduler.MainActivity.MSG_COLOR_STOP;

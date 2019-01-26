@@ -17,10 +17,12 @@
 package com.example.android.jobscheduler;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -58,6 +60,9 @@ public class MainActivity extends Activity {
     public static final int MSG_UNCOLOR_STOP = 1;
     public static final int MSG_COLOR_START = 2;
     public static final int MSG_COLOR_STOP = 3;
+    public static final int MSG_IT_AINT_MY_TURN = 4;
+    public static final int MSG_IT_IS_MY_TURN = 5;
+
 
     public static final String MESSENGER_INTENT_KEY
             = BuildConfig.APPLICATION_ID + ".MESSENGER_INTENT_KEY";
@@ -121,15 +126,26 @@ public class MainActivity extends Activity {
      * Executed when user clicks on SCHEDULE JOB.
      */
     public void scheduleJob(View v) {
+        for (int i = 1; i < 2; i++) { // just for debugging
+//        for (int i = 1; i < 101; i++) { // queue up jobs for the next 8 minutes
+            this.scheduleJobInSeconds(i * 5);
+        }
+    }
+
+    private void scheduleJobInSeconds(int runInSeconds) {
         JobInfo.Builder builder = new JobInfo.Builder(mJobId++, mServiceComponent);
+
+        // this blows, they clamp it to 15 minutes :face_palm:
+//        builder.setPeriodic(5000); // repeat every five seconds bruh;
 
         String delay = mDelayEditText.getText().toString();
         if (!TextUtils.isEmpty(delay)) {
-            builder.setMinimumLatency(Long.valueOf(delay) * 1000);
+            builder.setMinimumLatency(Long.valueOf(runInSeconds) * 1000);
         }
+        // not no mo you dont
         String deadline = mDeadlineEditText.getText().toString();
         if (!TextUtils.isEmpty(deadline)) {
-            builder.setOverrideDeadline(Long.valueOf(deadline) * 1000);
+            builder.setOverrideDeadline(Long.valueOf(runInSeconds) * 1000);
         }
         boolean requiresUnmetered = mWiFiConnectivityRadioButton.isChecked();
         boolean requiresAnyConnectivity = mAnyConnectivityRadioButton.isChecked();
@@ -247,6 +263,31 @@ public class MainActivity extends Activity {
                 case MSG_UNCOLOR_STOP:
                     showStopView.setBackgroundColor(getColor(R.color.none_received));
                     updateParamsTextView(null, "");
+                    break;
+                case MSG_IT_AINT_MY_TURN:
+                    break;
+                case MSG_IT_IS_MY_TURN:
+// 1. Instantiate an <code><a href="/reference/android/app/AlertDialog.Builder.html">AlertDialog.Builder</a></code> with its constructor
+                    AlertDialog.Builder builder = new AlertDialog.Builder(mActivity.get());
+
+// 2. Chain together various setter methods to set the dialog characteristics
+                    builder.setMessage("Click the right dismiss button")
+                            .setTitle("Do you hear, it?   Isn't it great?");
+
+                    builder.setPositiveButton("Left", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+
+                        }
+                    });
+                    builder.setNegativeButton("Right", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            // User cancelled the dialog
+                        }
+                    });
+
+// 3. Get the <code><a href="/reference/android/app/AlertDialog.html">AlertDialog</a></code> from <code><a href="/reference/android/app/AlertDialog.Builder.html#create()">create()</a></code>
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
                     break;
             }
         }

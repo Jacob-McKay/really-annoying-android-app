@@ -158,7 +158,7 @@ limitations under the License.
                         android:layout_width="48dp"
                         android:layout_height="wrap_content"
                         android:inputType="number"
-                        android:text="0" />
+                        android:text="5" />
 
                     <TextView
                         android:layout_width="wrap_content"

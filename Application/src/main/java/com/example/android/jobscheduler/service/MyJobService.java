@@ -20,6 +20,7 @@ import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.content.Intent;
 import android.media.MediaPlayer;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
@@ -39,6 +40,8 @@ import java.io.IOException;
 import static com.example.android.jobscheduler.MainActivity.MESSENGER_INTENT_KEY;
 import static com.example.android.jobscheduler.MainActivity.MSG_COLOR_START;
 import static com.example.android.jobscheduler.MainActivity.MSG_COLOR_STOP;
+import static com.example.android.jobscheduler.MainActivity.MSG_IT_AINT_MY_TURN;
+import static com.example.android.jobscheduler.MainActivity.MSG_IT_IS_MY_TURN;
 import static com.example.android.jobscheduler.MainActivity.WORK_DURATION_KEY;
 
 
@@ -52,6 +55,9 @@ public class MyJobService extends JobService {
     private static final String TAG = MyJobService.class.getSimpleName();
 
     private Messenger mActivityMessenger;
+
+    JobParameters mParams;
+
 
     @Override
     public void onCreate() {
@@ -77,6 +83,7 @@ public class MyJobService extends JobService {
 
     @Override
     public boolean onStartJob(final JobParameters params) {
+        mParams = params;
         // The work that this service "does" is simply wait for a certain duration and finish
         // the job (on another thread).
 
@@ -92,28 +99,53 @@ public class MyJobService extends JobService {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                sendMessage(MSG_COLOR_STOP, params.getJobId());
-                jobFinished(params, false);
+                new IsItMyTurn().execute();
+
+//                sendMessage(MSG_COLOR_STOP, params.getJobId());
             }
         }, duration);
         Log.i(TAG, "on start job: " + params.getJobId());
 
-        try {
-            HttpRequestFactory requestFactory
-                    = new NetHttpTransport().createRequestFactory();
-            HttpRequest request = requestFactory.buildGetRequest(
-                    new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/checkmyturn/butts"));
-            String rawResponse = request.execute().parseAsString();
-            String huzzah = "butts";
-        } catch (IOException ex) {
-            Log.e("busted", "wrecked", ex);
-        } catch (Exception otherEx) {
-            Log.e("morebusted", "morewrecked", otherEx);
-        }
-
 
         // Return true as there's more work to be done with this job.
         return true;
+    }
+
+    class IsItMyTurn extends AsyncTask<String, Void, String> {
+
+        private Exception exception;
+
+        protected String doInBackground(String... params) {
+
+            try {
+                HttpRequestFactory requestFactory
+                        = new NetHttpTransport().createRequestFactory();
+                HttpRequest request = requestFactory.buildGetRequest(
+                        new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/checkmyturn/butts"));
+                String rawResponse = request.execute().parseAsString();
+                return rawResponse;
+            } catch (Exception ex) {
+                Log.e("morebusted", "morewrecked", ex);
+                this.exception = ex;
+                return null;
+            }
+        }
+
+        protected void onPostExecute(String response) {
+            if (this.exception != null) {
+                sendMessage(MSG_IT_IS_MY_TURN, null);
+            } else {
+                Log.i("api response: ", response);
+                if(response.contains("true")) {
+                    sendMessage(MSG_IT_IS_MY_TURN, null);
+                } else {
+                    sendMessage(MSG_IT_AINT_MY_TURN, null);
+                }
+            }
+            // TODO: check this.exception
+            // TODO: do something with the feed
+            jobFinished(mParams, false);
+        }
     }
 
     @Override

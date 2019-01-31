@@ -53,12 +53,17 @@ import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpMethods;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.HttpResponseException;
+import com.google.api.client.http.HttpStatusCodes;
 import com.google.api.client.http.javanet.NetHttpTransport;
 
+import org.apache.http.HttpException;
 import org.apache.http.protocol.HTTP;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
+
+import io.opencensus.metrics.LongGauge;
 
 
 /**
@@ -117,9 +122,8 @@ public class MainActivity extends Activity {
 
     // Bind background service with caller activity. Then this activity can use
     // background service's AudioServiceBinder instance to invoke related methods.
-    private void bindAudioService()
-    {
-        if(audioServiceBinder == null) {
+    private void bindAudioService() {
+        if (audioServiceBinder == null) {
             Intent intent = new Intent(MainActivity.this, AudioService.class);
 
             // Below code will invoke serviceConnection's onServiceConnected method.
@@ -128,9 +132,8 @@ public class MainActivity extends Activity {
     }
 
     // Unbound background audio service with caller activity.
-    private void unBoundAudioService()
-    {
-        if(audioServiceBinder != null) {
+    private void unBoundAudioService() {
+        if (audioServiceBinder != null) {
             unbindService(serviceConnection);
         }
     }
@@ -197,7 +200,7 @@ public class MainActivity extends Activity {
         builder.setPositiveButton("Left", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 audioServiceBinder.stopAudio();
-                String deviceId = mDelayEditText.getText().toString();
+                String deviceId = mDurationTimeEditText.getText().toString();
                 new MyTurnIsOver().execute(deviceId);
             }
         });
@@ -306,6 +309,11 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void exit() {
+        cancelAllJobs(null);
+        System.exit(0);
+    }
+
     class MyTurnIsOver extends AsyncTask<String, Void, String> {
 
         private Exception exception;
@@ -316,7 +324,7 @@ public class MainActivity extends Activity {
                 HttpRequestFactory requestFactory
                         = new NetHttpTransport().createRequestFactory();
                 HttpRequest request = requestFactory.buildGetRequest(
-                        new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/reallycheckmyturn/" + params[0]));
+                        new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/ReallyCheckMyTurn/" + params[0]));
                 request.setRequestMethod(HttpMethods.POST);
                 String rawResponse = request.execute().parseAsString();
                 return rawResponse;
@@ -330,18 +338,19 @@ public class MainActivity extends Activity {
         protected void onPostExecute(String response) {
             if (this.exception != null) {
                 Log.e("wtf", "idk", this.exception);
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                    MainActivity.this.finishAffinity();
-                } else{
-                    MainActivity.this.finish();
-                    System.exit( 0 );
+                HttpResponseException httpEx = (HttpResponseException) this.exception;
+                if (httpEx.getStatusCode() == HttpStatusCodes.STATUS_CODE_NOT_FOUND) {
+                    Log.wtf("butts", "yeah this happens when there isn't a prank soooo");
+                    exit();
                 }
+            } else {
+                exit();
             }
         }
     }
 
     // THIS CLASS WAS STATIC, CAN IT BE NON STATIC?
+
     /**
      * A {@link Handler} allows you to send messages associated with a thread. A {@link Messenger}
      * uses this handler to communicate from {@link MyJobService}. It's also used to make

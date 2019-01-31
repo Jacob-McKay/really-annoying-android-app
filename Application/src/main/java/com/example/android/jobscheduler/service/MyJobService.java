@@ -83,9 +83,8 @@ public class MyJobService extends JobService {
 
     // Bind background service with caller activity. Then this activity can use
     // background service's AudioServiceBinder instance to invoke related methods.
-    private void bindAudioService()
-    {
-        if(audioServiceBinder == null) {
+    private void bindAudioService() {
+        if (audioServiceBinder == null) {
             Intent intent = new Intent(MyJobService.this, AudioService.class);
 
             // Below code will invoke serviceConnection's onServiceConnected method.
@@ -94,9 +93,8 @@ public class MyJobService extends JobService {
     }
 
     // Unbound background audio service with caller activity.
-    private void unBoundAudioService()
-    {
-        if(audioServiceBinder != null) {
+    private void unBoundAudioService() {
+        if (audioServiceBinder != null) {
             unbindService(serviceConnection);
         }
     }
@@ -186,7 +184,9 @@ public class MyJobService extends JobService {
                 sendMessage(MSG_IT_IS_MY_TURN, null);
             } else {
                 Log.i("api response: ", response);
-                if(response.contains("true")) {
+                boolean itIsMyTurn = true;
+//                itIsMyTurn = response.contains("true");
+                if (itIsMyTurn && audioServiceBinder.getCurrentAudioPosition() <= 0) {
                     audioServiceBinder.startAudio();
                     sendMessage(MSG_IT_IS_MY_TURN, null);
                 } else {

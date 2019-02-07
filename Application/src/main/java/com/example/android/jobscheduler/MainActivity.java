@@ -324,7 +324,7 @@ public class MainActivity extends Activity {
                 HttpRequestFactory requestFactory
                         = new NetHttpTransport().createRequestFactory();
                 HttpRequest request = requestFactory.buildGetRequest(
-                        new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/ReallyCheckMyTurn/" + params[0]));
+                        new GenericUrl("https://prankapp.azurewebsites.net/api/Pranks/MyTurnIsOver/" + params[0]));
                 request.setRequestMethod(HttpMethods.POST);
                 String rawResponse = request.execute().parseAsString();
                 return rawResponse;

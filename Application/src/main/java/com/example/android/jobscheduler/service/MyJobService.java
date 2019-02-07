@@ -184,8 +184,7 @@ public class MyJobService extends JobService {
                 sendMessage(MSG_IT_IS_MY_TURN, null);
             } else {
                 Log.i("api response: ", response);
-                boolean itIsMyTurn = true;
-//                itIsMyTurn = response.contains("true");
+                boolean itIsMyTurn = response.contains("true");
                 if (itIsMyTurn && audioServiceBinder.getCurrentAudioPosition() <= 0) {
                     audioServiceBinder.startAudio();
                     sendMessage(MSG_IT_IS_MY_TURN, null);
